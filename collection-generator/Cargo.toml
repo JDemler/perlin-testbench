@@ -4,3 +4,6 @@ version = "0.1.0"
 authors = ["Jakob Demler <jdemler@curry-software.com>"]
 
 [dependencies]
+rand = "0.3.14"
+time = "0.1.35"
+getopts = "0.2.4"
