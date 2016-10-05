@@ -1,5 +1,6 @@
 extern crate rand;
 extern crate getopts;
+extern crate time;
 
 use std::io::Write;
 use std::fs::File;
@@ -63,15 +64,23 @@ fn main() {
 fn generate_collection<W: Write>(docs: usize, len: usize, voc: usize, mut output: W) {
 
     let mut rng = ZipfGenerator::new(voc);
+    let mut start = time::PreciseTime::now();
     for i in 0..docs {
-        output.write(&rng.take(len)
-                .map(|t| vbyte_encode(t))
-                .flat_map(|tbytes| tbytes)
-                .collect::<Vec<_>>())
-            .unwrap();
+        let bytes = rng.take(len)
+            .map(|t| vbyte_encode(t))
+            .flat_map(|tbytes| tbytes)
+            .collect::<Vec<_>>();
+        output.write(&bytes).unwrap();
         output.write(&[0]).unwrap();
-        print!("\r{} of {} documents generated!", i + 1, docs);
-        std::io::stdout().flush().unwrap();
+        if i % 1024 == 0 {
+            print!("\r{:.*}% \t generating at {}/s",
+                   0,
+                   (((i + 1) as f32 / docs as f32) * 100.0),
+                   fmt_bytes((len * 8 * 1000000 * 1024) / 
+                             start.to(time::PreciseTime::now()).num_microseconds().unwrap() as usize)) ;
+            std::io::stdout().flush().unwrap();
+            start = time::PreciseTime::now();
+        }
     }
     println!("\nDone!");
 }
@@ -122,8 +131,8 @@ pub fn vbyte_encode(mut number: usize) -> Vec<u8> {
 #[derive(Clone)]
 pub struct ZipfGenerator {
     voc_size: usize,
-    factor: f64,
-    acc_probs: Vec<f64>,
+    factor: f32,
+    acc_probs: Vec<f32>,
     rng: XorShiftRng,
 }
 
@@ -131,15 +140,16 @@ impl ZipfGenerator {
     pub fn new(voc_size: usize) -> Self {
         let mut res = ZipfGenerator {
             voc_size: voc_size,
-            factor: (1.78 * voc_size as f64).ln(),
+            factor: (1.78 * voc_size as f32).ln(),
             acc_probs: Vec::with_capacity(voc_size),
             rng: rand::weak_rng(),
         };
         let mut acc = 0.0;
         for i in 1..voc_size {
-            acc += 1.0 / (i as f64 * res.factor);
+            acc += 1.0 / (i as f32 * res.factor);
             res.acc_probs.push(acc);
         }
+        res.acc_probs.push(1f32);
         res
     }
 }
@@ -148,13 +158,11 @@ impl<'a> Iterator for &'a mut ZipfGenerator {
     type Item = usize;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let dice = self.rng.gen::<f64>();
-        let mut c = 0;
-        loop {
-            if dice < self.acc_probs[c] {
-                return Some(c);
-            }
-            c += 1;
-        }
+        let dice = self.rng.next_f32();
+        let result = match self.acc_probs.binary_search_by(|v| v.partial_cmp(&dice).unwrap()) {
+            Ok(index) => index,
+            Err(index) => index
+        };
+        Some(result)
     }
 }
