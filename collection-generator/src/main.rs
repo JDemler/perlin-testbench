@@ -65,7 +65,7 @@ fn generate_collection<W: Write>(docs: usize, len: usize, voc: usize, mut output
 
     let mut rng = ZipfGenerator::new(voc);
     let mut start = time::PreciseTime::now();
-    for i in 0..docs {
+    for i in 1..docs + 1  {
         let bytes = rng.take(len)
             .map(|t| vbyte_encode(t))
             .flat_map(|tbytes| tbytes)

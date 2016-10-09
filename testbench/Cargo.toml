@@ -1,0 +1,9 @@
+[package]
+name = "testbench"
+version = "0.1.0"
+authors = ["Jakob Demler <jdemler@curry-software.com>"]
+
+[dependencies]
+perlin = { git = "https://github.com/JDemler/perlin", branch = "master" }
+time = "0.1.35"
+getopts = "0.2.4"
