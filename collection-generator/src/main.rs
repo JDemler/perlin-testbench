@@ -65,13 +65,13 @@ fn generate_collection<W: Write>(docs: usize, len: usize, voc: usize, mut output
 
     let mut rng = ZipfGenerator::new(voc);
     let mut start = time::PreciseTime::now();
+    output.write(&vbyte_encode(docs)).unwrap();
+    output.write(&vbyte_encode(len)).unwrap();
     for i in 1..docs + 1  {
         let bytes = rng.take(len)
-            .map(|t| vbyte_encode(t))
-            .flat_map(|tbytes| tbytes)
+            .flat_map(|t| vbyte_encode(t))
             .collect::<Vec<_>>();
         output.write(&bytes).unwrap();
-        output.write(&[0]).unwrap();
         if i % 1024 == 0 {
             print!("\r{:.*}% \t generating at {}/s",
                    0,
