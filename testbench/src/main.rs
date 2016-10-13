@@ -6,7 +6,7 @@ use std::fs::File;
 use std::io::{Bytes, Read, Write};
 use std::iter::Peekable;
 
-use perlin::storage::CompressedRamStorage;
+use perlin::storage::RamStorage;
 use perlin::index::boolean_index::{BooleanIndex, IndexBuilder};
 
 macro_rules! try_option{
@@ -65,7 +65,7 @@ fn main() {
 }
 
 fn index<R: Read>(collection: CollectionIterator<R>) -> BooleanIndex<usize>{
-    IndexBuilder::<_, CompressedRamStorage<_>>::new()
+    IndexBuilder::<_, RamStorage<_>>::new()
         .create(collection.map(|v| v.into_iter()))
         .unwrap()
  
