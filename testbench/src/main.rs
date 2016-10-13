@@ -6,8 +6,8 @@ use std::fs::File;
 use std::io::{Bytes, Read, Write};
 use std::iter::Peekable;
 
-use perlin::storage::RamStorage;
-use perlin::index::boolean_index::IndexBuilder;
+use perlin::storage::CompressedRamStorage;
+use perlin::index::boolean_index::{BooleanIndex, IndexBuilder};
 
 macro_rules! try_option{
     ($operand:expr) => {
@@ -49,16 +49,26 @@ fn main() {
     let docs = collection.docs;
     let len = collection.len;
     let start = time::PreciseTime::now();
-    let index =
-        IndexBuilder::<_, RamStorage<_>>::new().create(collection.map(|v| v.into_iter())).unwrap();
+    let index = index(collection);
     println!("");
-    println!("DONE! Indexed {} in {}ms",
+    println!("DONE! Indexed {} documents each {} terms totalling at  {} in {}ms",
+             docs,
+             len,
              fmt_bytes(docs * len * 8),
              start.to(time::PreciseTime::now()).num_milliseconds());
     println!("At a rate of {}/s",
              fmt_bytes((docs * len * 8 * 1000) /
                        start.to(time::PreciseTime::now()).num_milliseconds() as usize));
+    println!("{}", index.document_count());
 
+
+}
+
+fn index<R: Read>(collection: CollectionIterator<R>) -> BooleanIndex<usize>{
+    IndexBuilder::<_, CompressedRamStorage<_>>::new()
+        .create(collection.map(|v| v.into_iter()))
+        .unwrap()
+ 
 }
 
 fn fmt_bytes(bytes: usize) -> String {
